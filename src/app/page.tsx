@@ -419,11 +419,21 @@ export default function DashboardPage() {
 
               <div className="space-y-2.5 text-xs">
                 <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80 flex items-start gap-2">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <CheckCircle className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-medium text-zinc-200">Anti-Flooding Cutoff:</span>
+                    <span className="font-medium text-zinc-200">MOSFET 1 (GPIO 25) • Water Pump:</span>
                     <p className="text-[11px] text-zinc-400 mt-0.5">
-                      Pumps forcefully de-energize if runtime exceeds 60s or if bed moisture reaches 85%.
+                      Regulates soil moisture, air humidity, and provides evaporative air cooling. Forcefully de-energizes if runtime exceeds 60s or if bed moisture reaches 85%.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80 flex items-start gap-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium text-zinc-200">MOSFET 2 (GPIO 26) • 120mm Fan:</span>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">
+                      Controls canopy heat and air circulation. Automatically engages when canopy temperature exceeds 28°C to vent hot stagnant air and replenish CO₂.
                     </p>
                   </div>
                 </div>
@@ -431,19 +441,9 @@ export default function DashboardPage() {
                 <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80 flex items-start gap-2">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-medium text-zinc-200">Thermal Relief Trigger:</span>
+                    <span className="font-medium text-zinc-200">Autonomous Failsafe:</span>
                     <p className="text-[11px] text-zinc-400 mt-0.5">
-                      Circulation and exhaust fans automatically engage when canopy temperature exceeds 28°C.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80 flex items-start gap-2">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-medium text-zinc-200">Loss-of-Signal Failsafe:</span>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">
-                      If MQTT disconnects for &gt; 120s, the ESP32 enters autonomous scheduled sampling mode.
+                      If MQTT disconnects for &gt; 120s, the ESP32 local safety loop continues running autonomously without cloud dependency.
                     </p>
                   </div>
                 </div>

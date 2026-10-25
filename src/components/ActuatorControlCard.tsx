@@ -44,15 +44,15 @@ export const ActuatorControlCard: React.FC<ActuatorControlCardProps> = ({
             <Power className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">Actuator Perception & Control</h3>
-            <p className="text-xs text-zinc-400">Misting pumps & ventilation controls</p>
+            <h3 className="text-sm font-semibold text-white">2-Channel MOSFET Climate Control</h3>
+            <p className="text-xs text-zinc-400">MOSFET 1 (Water Pump) & MOSFET 2 (120mm Ventilation Fan)</p>
           </div>
         </div>
 
         {/* Safety Lock Badge */}
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/80">
-          <ShieldAlert className="w-3.5 h-3.5" />
-          MOCK ISOLATION ACTIVE
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-950/60 text-teal-300 border border-teal-800/80">
+          <Power className="w-3 h-3 text-teal-400" />
+          2x MOSFET CHANNELS
         </span>
       </div>
 
@@ -60,9 +60,10 @@ export const ActuatorControlCard: React.FC<ActuatorControlCardProps> = ({
       <div className="mb-4 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs text-zinc-400 flex items-start gap-2.5">
         <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-zinc-300 font-medium">Hardware Safety Interlock (Milestone 2)</p>
+          <p className="text-zinc-300 font-medium">Hardware Interlock & Dual-Purpose Regulation</p>
           <p className="mt-0.5 text-[11px] leading-relaxed">
-            All commands are executed against local mock state. No real ESP32 GPIO relays are triggered until Milestone 8 authentication and MQTT authorization are fully configured.
+            <strong>MOSFET 1 (GPIO 25):</strong> Regulates soil moisture & air humidity, with misting providing evaporative air cooling (60s anti-flooding cutoff).<br />
+            <strong>MOSFET 2 (GPIO 26):</strong> Regulates air temperature and circulation (120mm fan auto-engages when temperature ≥ 28°C).
           </p>
         </div>
       </div>
@@ -97,7 +98,7 @@ export const ActuatorControlCard: React.FC<ActuatorControlCardProps> = ({
                 {getActuatorIcon(actuator.type, actuator.isOn)}
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h4 className="text-xs font-semibold text-white">{actuator.name}</h4>
                   <span
                     className={`text-[10px] font-mono px-1.5 py-0.5 rounded border uppercase ${
@@ -108,9 +109,28 @@ export const ActuatorControlCard: React.FC<ActuatorControlCardProps> = ({
                   >
                     {actuator.mode}
                   </span>
+                  {actuator.type === 'pump' ? (
+                    <>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-teal-500/15 text-teal-300 border border-teal-500/30 font-medium">
+                        Moisture (Soil & Air)
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 font-medium">
+                        Evaporative Cooling
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
+                        Air Temp & Exhaust
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium">
+                        CO₂ Circulation
+                      </span>
+                    </>
+                  )}
                 </div>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{actuator.description}</p>
-                <div className="flex items-center gap-3 mt-1 text-[10px] text-zinc-400">
+                <p className="text-[11px] text-zinc-400 mt-1">{actuator.description}</p>
+                <div className="flex items-center gap-3 mt-1.5 text-[10px] text-zinc-400">
                   <span className="flex items-center gap-1 font-mono">
                     <Clock className="w-3 h-3 text-zinc-400" />
                     Max safety cutoff: {actuator.safetyLimitSeconds}s
