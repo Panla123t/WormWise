@@ -1,0 +1,43 @@
+services:
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: wormwise-influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=wormwise_admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=wormwise_secure_pass_123
+      - DOCKER_INFLUXDB_INIT_ORG=wormwise
+      - DOCKER_INFLUXDB_INIT_BUCKET=wormwise-telemetry
+      - DOCKER_INFLUXDB_INIT_RETENTION=30d
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=wormwise-dev-token-9999-secure-local
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  telegraf:
+    image: telegraf:1.30-alpine
+    container_name: wormwise-telegraf
+    restart: unless-stopped
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=wormwise-dev-token-9999-secure-local
+      - INFLUXDB_ORG=wormwise
+      - INFLUXDB_BUCKET=wormwise-telemetry
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL:-ssl://broker.hivemq.com:8883}
+      - MQTT_USERNAME=${MQTT_USERNAME:-wormwise_backend_dev}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+
+volumes:
+  influxdb_data:

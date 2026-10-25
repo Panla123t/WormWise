@@ -184,14 +184,13 @@ wormwise/
 
 **Goal:** Store and query sensor history.
 
-- [ ] Create/configure an InfluxDB instance.
-- [ ] Create a dedicated development bucket and scoped credentials.
-- [ ] Configure Telegraf's MQTT consumer input.
-- [ ] Map incoming payload fields and tags consistently.
-- [ ] Configure Telegraf's InfluxDB output.
-- [ ] Test timestamp, units, tags, and missing-field behavior.
-- [ ] Define retention and data-volume expectations.
-- [ ] Verify that duplicate or malformed messages are handled appropriately.
+- [x] Configure InfluxDB instance and 30-day retention bucket (`docker-compose.telemetry.yml` & docs).
+- [x] Configure Telegraf MQTT consumer input with topic parsing (`telegraf/telegraf.conf`).
+- [x] Map incoming payload fields and tags consistently (`tenant_id`, `farm_id`, `greenhouse_id`, `device_id`).
+- [x] Configure Telegraf InfluxDB v2 batch output with retry buffering.
+- [x] Test timestamps, units, tags, and low-cardinality enforcement (`scripts/test-influx-ingestion.ts`).
+- [x] Integrate Flux downsampled query client in Next.js (`src/lib/influxdb/client.ts`).
+- [x] Document InfluxDB Cloud vs Local Docker provisioning (`docs/telegraf-influxdb-setup.md`).
 
 ---
 
@@ -298,8 +297,8 @@ wormwise/
 | 3. Data model and authentication | 🟢 Complete | Supabase Auth, PostgreSQL schema, RLS, seed data & tests |
 | 4. MQTT broker and device identity | 🟢 Complete | HiveMQ Cloud, TLS, topic structure, payload schemas & test harness |
 | 5. ESP32 telemetry | 🟢 Complete | Arduino IDE firmware for 1xDHT22, 3xSoil, 1xMQ135, 2xMOSFET & local safety |
-| 6. Time-series storage | 🟡 Up next | InfluxDB bucket, Telegraf MQTT consumer & tag mapping |
-| 7. Real-data dashboard | ⬜ Not started | |
+| 6. Time-series storage | 🟢 Complete | InfluxDB bucket, Telegraf MQTT consumer, tag mapping & Flux client |
+| 7. Real-data dashboard | 🟡 Up next | Connect web dashboard & charts to live InfluxDB endpoints |
 | 8. Secure web control | ⬜ Not started | |
 | 9. Automation and alerts | ⬜ Not started | |
 | 10. Reliability and deployment | ⬜ Not started | |
