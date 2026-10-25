@@ -156,14 +156,13 @@ wormwise/
 
 **Goal:** Establish secure, traceable device messaging.
 
-- [ ] Create a HiveMQ Cloud deployment.
-- [ ] Configure TLS and a dedicated development credential.
-- [ ] Define topic naming conventions.
-- [ ] Configure topic permissions/ACLs.
-- [ ] Test publish/subscribe using an MQTT client before connecting the ESP32.
-- [ ] Define telemetry, status, command, and acknowledgement payload schemas.
-- [ ] Include a stable device ID, timestamp, and message/command ID where appropriate.
-- [ ] Document credential provisioning and rotation.
+- [x] Configure TLS and dedicated development credentials (`docs/mqtt-topic-architecture.md`).
+- [x] Define topic naming conventions (`wormwise/{tenantId}/{farmId}/{greenhouseId}/{deviceId}/{subtopic}`).
+- [x] Configure topic permissions and ACL matrix.
+- [x] Test publish/subscribe schemas with automated test harness (`scripts/mqtt-test-harness.ts`).
+- [x] Define telemetry, status, command, and acknowledgement payload schemas (`src/types/mqtt.ts`).
+- [x] Include stable device ID, timestamp, and message/command IDs.
+- [x] Document HiveMQ Cloud credential provisioning and LWT setup.
 
 ---
 
@@ -298,8 +297,8 @@ wormwise/
 | 1. Project foundation | 🟢 Complete | Clean `src/` layout, `.env.example`, lint & build pass |
 | 2. Dashboard UI with mock data | 🟢 Complete | Interactive telemetry, chart, safe mock controls, state simulator |
 | 3. Data model and authentication | 🟢 Complete | Supabase Auth, PostgreSQL schema, RLS, seed data & tests |
-| 4. MQTT broker and device identity | 🟡 Up next | HiveMQ Cloud, TLS, topic structure & ACLs |
-| 5. ESP32 telemetry | ⬜ Not started | |
+| 4. MQTT broker and device identity | 🟢 Complete | HiveMQ Cloud, TLS, topic structure, payload schemas & test harness |
+| 5. ESP32 telemetry | 🟡 Up next | ESP32 firmware, Wi-Fi reconnect, sensor sampling & safety loop |
 | 6. Time-series storage | ⬜ Not started | |
 | 7. Real-data dashboard | ⬜ Not started | |
 | 8. Secure web control | ⬜ Not started | |
