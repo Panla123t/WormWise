@@ -97,7 +97,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 **Goal:** Establish a maintainable application structure before adding integrations.
 
 - [x] Review project structure.
-- [ ] Create shared layout, navigation, and page structure (`src/`).
+- [x] Create shared layout, navigation, and page structure (`src/`).
 - [x] Set up environment variable conventions (`.env.example`).
 - [x] Add formatting/lint checks (`npm run lint`).
 - [x] Verify `.env.local` is ignored by Git.
@@ -127,14 +127,14 @@ wormwise/
 
 **Goal:** Build and review the interface before connecting real hardware.
 
-- [ ] Create the farm overview page.
-- [ ] Add cards for temperature, humidity, and other available readings.
-- [ ] Add sensor status and last-updated timestamps.
-- [ ] Add historical chart placeholders.
-- [ ] Add greenhouse/device selector.
-- [ ] Add pump and fan controls in a disabled or mock-only state.
-- [ ] Design loading, empty, offline, and error states.
-- [ ] Make the interface usable on desktop and mobile.
+- [x] Create the farm overview page.
+- [x] Add cards for temperature, humidity, and other available readings.
+- [x] Add sensor status and last-updated timestamps.
+- [x] Add historical chart placeholders.
+- [x] Add greenhouse/device selector.
+- [x] Add pump and fan controls in a disabled or mock-only state.
+- [x] Design loading, empty, offline, and error states.
+- [x] Make the interface usable on desktop and mobile.
 
 ---
 
@@ -296,9 +296,9 @@ wormwise/
 | Milestone | Status | Notes |
 |---|---|---|
 | 0. Development environment | 🟢 Complete | Next.js, Node, Git, and repo linked |
-| 1. Project foundation | 🟡 In progress | Structure organization & env config |
-| 2. Dashboard UI with mock data | ⬜ Not started | |
-| 3. Data model and authentication | ⬜ Not started | |
+| 1. Project foundation | 🟢 Complete | Clean `src/` layout, `.env.example`, lint & build pass |
+| 2. Dashboard UI with mock data | 🟢 Complete | Interactive telemetry, chart, safe mock controls, state simulator |
+| 3. Data model and authentication | 🟡 Up next | Supabase Auth + PostgreSQL schema |
 | 4. MQTT broker and device identity | ⬜ Not started | |
 | 5. ESP32 telemetry | ⬜ Not started | |
 | 6. Time-series storage | ⬜ Not started | |
