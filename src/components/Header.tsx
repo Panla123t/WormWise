@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Greenhouse } from '@/types/farm';
-import { Sprout, Wifi, WifiOff, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Sprout, Wifi, WifiOff, RefreshCw, ShieldAlert, UserCheck } from 'lucide-react';
 
 interface HeaderProps {
   greenhouses: Greenhouse[];
@@ -112,6 +113,16 @@ export const Header: React.FC<HeaderProps> = ({
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
             <span className="hidden sm:inline">Sample Now</span>
           </button>
+
+          {/* User Auth & Tenant Identity */}
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-800/80 text-xs font-medium transition"
+            title="Tenant & Auth Settings"
+          >
+            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Operator Auth</span>
+          </Link>
         </div>
       </div>
     </header>

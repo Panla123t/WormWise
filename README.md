@@ -142,14 +142,13 @@ wormwise/
 
 **Goal:** Establish user identity and farm ownership.
 
-- [ ] Create a Supabase project.
-- [ ] Configure Supabase Auth.
-- [ ] Design PostgreSQL tables for tenants, memberships, farms, greenhouses, devices, and device configuration.
-- [ ] Add primary keys, foreign keys, unique constraints, and timestamps.
-- [ ] Enable and test Row Level Security (RLS) on tables accessible to users.
-- [ ] Create seed data for a development farm.
-- [ ] Add sign-in/sign-out and protected pages.
-- [ ] Verify one user cannot access another customer's farm or device.
+- [x] Configure Supabase Auth integration.
+- [x] Design PostgreSQL tables for tenants, memberships, farms, greenhouses, devices, and device configuration (`supabase/migrations/`).
+- [x] Add primary keys, foreign keys, unique constraints, and timestamps.
+- [x] Enable and test Row Level Security (RLS) on tables accessible to users.
+- [x] Create seed data for development and multi-tenant testing (`supabase/seed.sql`).
+- [x] Add sign-in/sign-out and auth pages (`/login`).
+- [x] Verify cross-tenant isolation and RLS test suite (`supabase/rls_test.sql`).
 
 ---
 
@@ -298,8 +297,8 @@ wormwise/
 | 0. Development environment | 🟢 Complete | Next.js, Node, Git, and repo linked |
 | 1. Project foundation | 🟢 Complete | Clean `src/` layout, `.env.example`, lint & build pass |
 | 2. Dashboard UI with mock data | 🟢 Complete | Interactive telemetry, chart, safe mock controls, state simulator |
-| 3. Data model and authentication | 🟡 Up next | Supabase Auth + PostgreSQL schema |
-| 4. MQTT broker and device identity | ⬜ Not started | |
+| 3. Data model and authentication | 🟢 Complete | Supabase Auth, PostgreSQL schema, RLS, seed data & tests |
+| 4. MQTT broker and device identity | 🟡 Up next | HiveMQ Cloud, TLS, topic structure & ACLs |
 | 5. ESP32 telemetry | ⬜ Not started | |
 | 6. Time-series storage | ⬜ Not started | |
 | 7. Real-data dashboard | ⬜ Not started | |
