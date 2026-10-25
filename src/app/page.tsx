@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   MOCK_GREENHOUSES,
   INITIAL_METRICS,
   INITIAL_ACTUATORS,
   generateHistoricalData,
 } from '@/lib/mock-data';
-import { Greenhouse, SensorMetric, ActuatorState } from '@/types/farm';
+import { Greenhouse, SensorMetric, ActuatorState, HistoricalDataPoint } from '@/types/farm';
+import { LatestTelemetryRow } from '@/types/influx';
 import { Header } from '@/components/Header';
 import { SensorCard } from '@/components/SensorCard';
 import { TelemetryChart } from '@/components/TelemetryChart';
@@ -22,54 +23,195 @@ import {
   AlertTriangle,
   Info,
   CheckCircle,
+  Activity,
+  Radio,
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const [selectedGreenhouse, setSelectedGreenhouse] = useState<Greenhouse>(MOCK_GREENHOUSES[0]);
+  const [dataSource, setDataSource] = useState<'live' | 'simulation'>('live');
+  const [telemetrySource, setTelemetrySource] = useState<'influxdb' | 'mock'>('mock');
   const [scenario, setScenario] = useState<SimulationScenario>('normal');
   const [actuators, setActuators] = useState<ActuatorState[]>(INITIAL_ACTUATORS);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [chartRange, setChartRange] = useState<'24h' | '12h' | '6h'>('24h');
 
-  // Generate historical data
-  const historicalData = useMemo(() => generateHistoricalData(24), []);
+  // Live telemetry state
+  const [liveLatest, setLiveLatest] = useState<LatestTelemetryRow | null>(null);
+  const [liveHistory, setLiveHistory] = useState<HistoricalDataPoint[]>(() => generateHistoricalData(24));
+  const [lastPollTime, setLastPollTime] = useState<string>('Initializing...');
 
-  // Compute metrics based on simulation scenario
+  // Fallback simulation historical data
+  const simulationHistory = useMemo(() => generateHistoricalData(24), []);
+
+  const deviceId = selectedGreenhouse.devices[0]?.id || 'esp32-wormwise-gh1-01';
+  const tenantId = '11111111-1111-1111-1111-111111111111';
+
+  // Fetch telemetry from server-side InfluxDB / mock endpoints
+  const fetchTelemetry = useCallback(async () => {
+    try {
+      // 1. Fetch latest sensor sample
+      const resLatest = await fetch(`/api/telemetry/latest?tenantId=${tenantId}&deviceId=${deviceId}`);
+      if (resLatest.ok) {
+        const jsonLatest = await resLatest.json();
+        if (jsonLatest.success && jsonLatest.data) {
+          setLiveLatest(jsonLatest.data);
+          setTelemetrySource(jsonLatest.source || 'mock');
+          setLastPollTime(new Date().toLocaleTimeString());
+        }
+      }
+
+      // 2. Fetch historical downsampled time-series
+      const resHistory = await fetch(`/api/telemetry/history?range=${chartRange}&tenantId=${tenantId}&deviceId=${deviceId}`);
+      if (resHistory.ok) {
+        const jsonHistory = await resHistory.json();
+        if (jsonHistory.success && Array.isArray(jsonHistory.data)) {
+          const points: HistoricalDataPoint[] = jsonHistory.data.map((d: any) => ({
+            timestamp: d.timestamp,
+            soilMoisture: d.soilMoisture,
+            soilTemperature: d.soilTemp ?? d.soilTemperature ?? 21.5,
+            airTemperature: d.airTemp ?? d.airTemperature ?? 23.5,
+            airHumidity: d.airHumidity,
+          }));
+          setLiveHistory(points);
+        }
+      }
+    } catch (err) {
+      console.warn('[Dashboard] Telemetry polling error:', err);
+    }
+  }, [deviceId, tenantId, chartRange]);
+
+  // Periodic polling when in live mode (every 7 seconds)
+  useEffect(() => {
+    if (dataSource === 'live') {
+      fetchTelemetry();
+      const interval = setInterval(fetchTelemetry, 7000);
+      return () => clearInterval(interval);
+    }
+  }, [dataSource, fetchTelemetry]);
+
+  // Manual refresh action
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchTelemetry();
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 500);
+  };
+
+  // Switch to simulation if user clicks a scenario
+  const handleSelectScenario = (scen: SimulationScenario) => {
+    setScenario(scen);
+    if (scen !== 'normal') {
+      setDataSource('simulation');
+    }
+  };
+
+  // Compute metrics based on live readings or simulation overrides
   const metrics = useMemo<SensorMetric[]>(() => {
-    return INITIAL_METRICS.map((metric) => {
-      if (scenario === 'low_moisture' && metric.id === 'soil_moisture') {
+    if (dataSource === 'simulation') {
+      return INITIAL_METRICS.map((metric) => {
+        if (scenario === 'low_moisture' && metric.id === 'soil_moisture') {
+          return {
+            ...metric,
+            value: 54.2,
+            status: 'warning',
+            trend: 'falling',
+            description: 'CRITICAL: Bed moisture below 60%. Worm skin respiration impaired.',
+          };
+        }
+        if (scenario === 'high_temp') {
+          if (metric.id === 'soil_temp') {
+            return {
+              ...metric,
+              value: 29.8,
+              status: 'critical',
+              trend: 'rising',
+              description: 'DANGER: Bed temperature approaching lethal worm limit (>30°C).',
+            };
+          }
+          if (metric.id === 'air_temp') {
+            return {
+              ...metric,
+              value: 33.4,
+              status: 'warning',
+              trend: 'rising',
+            };
+          }
+        }
+        return metric;
+      });
+    }
+
+    // Live mode metrics derived from API / InfluxDB
+    const latest = liveLatest;
+    return INITIAL_METRICS.map((m) => {
+      if (!latest) return m;
+
+      if (m.id === 'soil_moisture') {
+        const val = latest.soilMoisture;
+        const status = val < 50 || val > 85 ? 'critical' : val < 65 || val > 80 ? 'warning' : 'optimal';
         return {
-          ...metric,
-          value: 54.2,
-          status: 'warning',
-          trend: 'falling',
-          description: 'CRITICAL: Bed moisture below 60%. Worm skin respiration impaired.',
+          ...m,
+          value: val,
+          status,
+          lastUpdated: latest.timestamp,
+          description: status === 'optimal'
+            ? 'Moisture within optimal 65-80% humus band for respiration.'
+            : 'Bed moisture outside recommended range.',
         };
       }
-      if (scenario === 'high_temp') {
-        if (metric.id === 'soil_temp') {
-          return {
-            ...metric,
-            value: 29.8,
-            status: 'critical',
-            trend: 'rising',
-            description: 'DANGER: Bed temperature approaching lethal worm limit (>30°C).',
-          };
-        }
-        if (metric.id === 'air_temp') {
-          return {
-            ...metric,
-            value: 33.4,
-            status: 'warning',
-            trend: 'rising',
-          };
-        }
-      }
-      return metric;
-    });
-  }, [scenario]);
 
-  const isStale = scenario === 'stale';
-  const isOffline = scenario === 'offline';
+      if (m.id === 'soil_temp') {
+        const val = latest.soilTemp;
+        const status = val > 30 ? 'critical' : val > 25 || val < 15 ? 'warning' : 'optimal';
+        return {
+          ...m,
+          value: val,
+          status,
+          lastUpdated: latest.timestamp,
+          description: status === 'optimal'
+            ? 'Optimal 18-25°C worm metabolism zone.'
+            : 'Bed temperature requires operator attention.',
+        };
+      }
+
+      if (m.id === 'air_temp') {
+        const val = latest.airTemp;
+        return {
+          ...m,
+          value: val,
+          status: val > 32 ? 'warning' : 'optimal',
+          lastUpdated: latest.timestamp,
+        };
+      }
+
+      if (m.id === 'air_humidity') {
+        const val = latest.airHumidity;
+        return {
+          ...m,
+          value: val,
+          status: val < 50 ? 'warning' : 'optimal',
+          lastUpdated: latest.timestamp,
+        };
+      }
+
+      if (m.id === 'co2_level') {
+        const val = latest.co2Ppm ?? 580;
+        return {
+          ...m,
+          value: val,
+          status: val > 1200 ? 'warning' : 'optimal',
+          lastUpdated: latest.timestamp,
+        };
+      }
+
+      return m;
+    });
+  }, [dataSource, scenario, liveLatest]);
+
+  const isStale = dataSource === 'simulation' ? scenario === 'stale' : Boolean(liveLatest?.isStale);
+  const isOffline = dataSource === 'simulation' ? scenario === 'offline' : false;
 
   const handleToggleActuator = (id: string) => {
     setActuators((prev) =>
@@ -77,14 +219,19 @@ export default function DashboardPage() {
     );
   };
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 600);
-  };
+  const currentDevice = useMemo(() => {
+    const base = selectedGreenhouse.devices[0];
+    if (dataSource === 'live' && liveLatest) {
+      return {
+        ...base,
+        wifiRssi: liveLatest.wifiRssi ?? base.wifiRssi,
+        lastSeen: liveLatest.timestamp,
+      };
+    }
+    return base;
+  }, [selectedGreenhouse, dataSource, liveLatest]);
 
-  const currentDevice = selectedGreenhouse.devices[0];
+  const displayedHistory = dataSource === 'live' ? liveHistory : simulationHistory;
 
   return (
     <div className="min-h-screen bg-[#090d0b] text-zinc-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
@@ -96,11 +243,46 @@ export default function DashboardPage() {
         simulationMode={scenario === 'offline' ? 'offline' : 'normal'}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
+        dataSource={dataSource}
+        telemetrySource={telemetrySource}
+        onToggleDataSource={setDataSource}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Interactive Scenario Bar for Milestone 2 Testing */}
-        <SimulationBar currentScenario={scenario} onSelectScenario={setScenario} />
+        {/* Interactive Scenario Bar */}
+        <div className="mb-4">
+          <SimulationBar currentScenario={scenario} onSelectScenario={handleSelectScenario} />
+        </div>
+
+        {/* Live Stream / InfluxDB Status Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 px-4 py-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${dataSource === 'live' ? 'bg-emerald-400' : 'bg-indigo-400'}`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${dataSource === 'live' ? 'bg-emerald-500' : 'bg-indigo-500'}`}></span>
+            </span>
+            <span className="font-semibold text-white">
+              {dataSource === 'live' ? 'Milestone 7 Live InfluxDB Consumer' : 'Simulation Engine Sandbox'}
+            </span>
+            <span className="text-zinc-500">•</span>
+            <span className="text-zinc-400">
+              Source: <strong className={telemetrySource === 'influxdb' ? 'text-emerald-400' : 'text-amber-400'}>{telemetrySource.toUpperCase()}</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 text-zinc-400">
+            <span className="flex items-center gap-1 font-mono text-[11px]">
+              <Radio className="w-3.5 h-3.5 text-emerald-400" />
+              Poll: 7s (Last: {lastPollTime})
+            </span>
+            <button
+              onClick={() => setDataSource((prev) => (prev === 'live' ? 'simulation' : 'live'))}
+              className="text-emerald-400 hover:text-emerald-300 font-medium underline underline-offset-4"
+            >
+              Switch to {dataSource === 'live' ? 'Simulation Sandbox' : 'Live Polling'}
+            </button>
+          </div>
+        </div>
 
         {/* Greenhouse Context Banner */}
         <div className="rounded-2xl bg-gradient-to-r from-emerald-950/40 via-zinc-900/60 to-zinc-900/40 border border-emerald-900/30 p-5 mb-6 shadow-md backdrop-blur-sm">
@@ -182,6 +364,7 @@ export default function DashboardPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+              <Activity className="w-4 h-4 text-emerald-400" />
               <span>Primary Vermiculture Telemetry</span>
             </h3>
             <span className="text-xs text-zinc-400 font-mono">
@@ -205,7 +388,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Main 2-column wide area: Historical Telemetry Chart + Actuator Controls */}
           <div className="lg:col-span-2 space-y-6">
-            <TelemetryChart data={historicalData} isOffline={isOffline} />
+            <TelemetryChart
+              data={displayedHistory}
+              isOffline={isOffline}
+              timeRange={chartRange}
+              onTimeRangeChange={setChartRange}
+              dataSource={telemetrySource}
+            />
             <ActuatorControlCard
               actuators={actuators}
               onToggleActuator={handleToggleActuator}
@@ -269,9 +458,9 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>© 2026 WormWise Platform. Smart Earthworm Farm Perception & Control.</p>
           <div className="flex items-center gap-4">
-            <span className="text-zinc-400">Milestone 2: Mock Dashboard</span>
+            <span className="text-zinc-400">Milestone 7: Real Telemetry Integration</span>
             <span>•</span>
-            <span className="text-emerald-400/90 font-mono">Next.js App Router + TypeScript</span>
+            <span className="text-emerald-400/90 font-mono">Next.js App Router + InfluxDB v2</span>
           </div>
         </div>
       </footer>

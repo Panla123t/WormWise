@@ -7,11 +7,26 @@ import { LineChart, Activity } from 'lucide-react';
 interface TelemetryChartProps {
   data: HistoricalDataPoint[];
   isOffline?: boolean;
+  timeRange?: '24h' | '12h' | '6h';
+  onTimeRangeChange?: (range: '24h' | '12h' | '6h') => void;
+  dataSource?: 'influxdb' | 'mock';
 }
 
-export const TelemetryChart: React.FC<TelemetryChartProps> = ({ data, isOffline = false }) => {
+export const TelemetryChart: React.FC<TelemetryChartProps> = ({
+  data,
+  isOffline = false,
+  timeRange: controlledTimeRange,
+  onTimeRangeChange,
+  dataSource = 'mock',
+}) => {
   const [activeMetric, setActiveMetric] = useState<'moisture' | 'temperature'>('moisture');
-  const [timeRange, setTimeRange] = useState<'24h' | '12h' | '6h'>('24h');
+  const [internalTimeRange, setInternalTimeRange] = useState<'24h' | '12h' | '6h'>('24h');
+
+  const timeRange = controlledTimeRange || internalTimeRange;
+  const handleTimeRangeClick = (r: '24h' | '12h' | '6h') => {
+    setInternalTimeRange(r);
+    onTimeRangeChange?.(r);
+  };
 
   const sliceCount = timeRange === '24h' ? 24 : timeRange === '12h' ? 12 : 6;
   const displayData = data.slice(-sliceCount);
@@ -82,7 +97,9 @@ export const TelemetryChart: React.FC<TelemetryChartProps> = ({ data, isOffline 
           </div>
           <div>
             <h3 className="text-sm font-semibold text-white">Historical Telemetry Trends</h3>
-            <p className="text-xs text-zinc-400">Sensor behavior over time (InfluxDB time-series mock)</p>
+            <p className="text-xs text-zinc-400">
+              Sensor behavior over time ({dataSource === 'influxdb' ? 'InfluxDB Flux query' : 'InfluxDB baseline mock'})
+            </p>
           </div>
         </div>
 
@@ -116,7 +133,7 @@ export const TelemetryChart: React.FC<TelemetryChartProps> = ({ data, isOffline 
             {(['6h', '12h', '24h'] as const).map((r) => (
               <button
                 key={r}
-                onClick={() => setTimeRange(r)}
+                onClick={() => handleTimeRangeClick(r)}
                 className={`px-2.5 py-1 rounded-md font-medium transition ${
                   timeRange === r ? 'bg-zinc-700 text-white' : 'hover:text-zinc-200'
                 }`}

@@ -198,14 +198,14 @@ wormwise/
 
 **Goal:** Replace mock readings with real sensor values.
 
-- [ ] Add server-side data access to InfluxDB.
-- [ ] Add an API endpoint for latest readings.
-- [ ] Add an API endpoint for historical ranges.
-- [ ] Validate query parameters and enforce farm/device authorization.
-- [ ] Add time range and device filters.
-- [ ] Add loading, empty, stale, offline, and error states.
-- [ ] Start with polling every 5–10 seconds if sufficient.
-- [ ] Add SSE/WebSocket only if measured requirements justify it.
+- [x] Add server-side data access to InfluxDB (`src/lib/influxdb/client.ts`).
+- [x] Add an API endpoint for latest readings (`src/app/api/telemetry/latest/route.ts`).
+- [x] Add an API endpoint for historical ranges (`src/app/api/telemetry/history/route.ts`).
+- [x] Validate query parameters and enforce farm/device authorization.
+- [x] Add time range and device filters (`24h`, `12h`, `6h`, device selection).
+- [x] Add loading, empty, stale, offline, and error states.
+- [x] Start with polling every 5–10 seconds if sufficient (7s auto-polling).
+- [x] Graceful fallback to baseline simulator when InfluxDB is empty or standby.
 
 ---
 

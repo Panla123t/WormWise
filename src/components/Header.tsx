@@ -9,9 +9,12 @@ interface HeaderProps {
   greenhouses: Greenhouse[];
   selectedGreenhouse: Greenhouse;
   onSelectGreenhouse: (gh: Greenhouse) => void;
-  simulationMode: 'normal' | 'low_moisture' | 'stale' | 'offline';
+  simulationMode: 'normal' | 'low_moisture' | 'high_temp' | 'stale' | 'offline';
   onRefresh: () => void;
   isRefreshing: boolean;
+  dataSource?: 'live' | 'simulation';
+  telemetrySource?: 'influxdb' | 'mock';
+  onToggleDataSource?: (source: 'live' | 'simulation') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,23 +24,64 @@ export const Header: React.FC<HeaderProps> = ({
   simulationMode,
   onRefresh,
   isRefreshing,
+  dataSource = 'live',
+  telemetrySource = 'mock',
+  onToggleDataSource,
 }) => {
   const isOnline = simulationMode !== 'offline';
 
   return (
     <header className="border-b border-emerald-950/20 bg-emerald-950/50 backdrop-blur-md sticky top-0 z-40">
-      {/* Milestone 2 Safety notice */}
-      <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-xs text-amber-300 flex items-center justify-between">
+      {/* Milestone 7 Telemetry Status Banner */}
+      <div
+        className={`px-4 py-1.5 text-xs flex items-center justify-between border-b transition-colors ${
+          dataSource === 'live'
+            ? telemetrySource === 'influxdb'
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+              : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+            : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+        }`}
+      >
         <div className="flex items-center gap-2">
-          <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+          <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
           <span>
-            <strong>Milestone 2 Mock Mode:</strong> UI connected to telemetry simulator. Hardware actuators are safely isolated.
+            {dataSource === 'live' ? (
+              telemetrySource === 'influxdb' ? (
+                <>
+                  <strong>Milestone 7 Live InfluxDB:</strong> Connected to live time-series store. Real probe values displayed.
+                </>
+              ) : (
+                <>
+                  <strong>Milestone 7 Live Polling:</strong> Listening for ESP32 packets on EMQX Cloud; displaying baseline.
+                </>
+              )
+            ) : (
+              <>
+                <strong>Simulation Sandbox:</strong> Interactive scenario test active. Actuator controls safely simulated.
+              </>
+            )}
           </span>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-zinc-400">
-          <span>Firmware Target: ESP32-WROOM-32D</span>
-          <span>•</span>
-          <span>Broker: HiveMQ Cloud</span>
+
+        <div className="flex items-center gap-3">
+          {onToggleDataSource && (
+            <button
+              onClick={() => onToggleDataSource(dataSource === 'live' ? 'simulation' : 'live')}
+              className={`px-2 py-0.5 rounded text-[11px] font-medium border transition ${
+                dataSource === 'live'
+                  ? 'bg-emerald-600/30 text-emerald-200 border-emerald-500/50 hover:bg-emerald-600/50'
+                  : 'bg-indigo-600/30 text-indigo-200 border-indigo-500/50 hover:bg-indigo-600/50'
+              }`}
+            >
+              Mode: {dataSource === 'live' ? 'Live Telemetry' : 'Simulator'}
+            </button>
+          )}
+
+          <div className="hidden sm:flex items-center gap-2 text-zinc-400 text-[11px]">
+            <span>Firmware: ESP32-WROOM-32D</span>
+            <span>•</span>
+            <span>Broker: EMQX Cloud (TLS 8883)</span>
+          </div>
         </div>
       </div>
 

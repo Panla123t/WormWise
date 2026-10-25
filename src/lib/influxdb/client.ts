@@ -1,5 +1,5 @@
 import { InfluxDB } from '@influxdata/influxdb-client';
-import { TimeSeriesQueryOptions, DownsampledTelemetryRow } from '@/types/influx';
+import { TimeSeriesQueryOptions, DownsampledTelemetryRow, LatestTelemetryRow } from '@/types/influx';
 import { generateHistoricalData } from '@/lib/mock-data';
 
 export function isInfluxConfigured(): boolean {
@@ -114,3 +114,83 @@ export async function queryHistoricalTelemetry(
     });
   });
 }
+
+/**
+ * Queries the most recent telemetry readings from InfluxDB v2.
+ * Falls back to deterministic mock values if InfluxDB is offline or empty.
+ */
+export async function queryLatestTelemetry(options: {
+  tenantId: string;
+  deviceId?: string;
+}): Promise<LatestTelemetryRow> {
+  const fallbackMock: LatestTelemetryRow = {
+    timestamp: '2026-10-25T15:00:00.000Z',
+    soilMoisture: 72.4,
+    soilTemp: 21.8,
+    airTemp: 23.5,
+    airHumidity: 65.2,
+    co2Ppm: 580,
+    wifiRssi: -64,
+    deviceId: options.deviceId || 'esp32-wormwise-gh1-01',
+    source: 'mock',
+    isStale: false,
+  };
+
+  if (!isInfluxConfigured()) {
+    return fallbackMock;
+  }
+
+  const queryApi = getInfluxQueryClient();
+  const bucket = process.env.INFLUXDB_BUCKET || 'wormwise-telemetry';
+
+  // Query the last point within the past 24 hours
+  const fluxQuery = `
+    from(bucket: "${bucket}")
+      |> range(start: -24h)
+      |> filter(fn: (r) => r["_measurement"] == "vermicompost_telemetry")
+      |> filter(fn: (r) => r["tenant_id"] == "${options.tenantId}")
+      ${options.deviceId ? `|> filter(fn: (r) => r["device_id"] == "${options.deviceId}")` : ''}
+      |> last()
+  `;
+
+  const reading: Partial<LatestTelemetryRow> = {
+    deviceId: options.deviceId || 'esp32-wormwise-gh1-01',
+    source: 'influxdb',
+  };
+  let latestIsoTime = '';
+
+  return new Promise((resolve) => {
+    queryApi.queryRows(fluxQuery, {
+      next(row, tableMetadata) {
+        const o = tableMetadata.toObject(row);
+        latestIsoTime = o._time;
+        const field = o._field as string;
+        const val = Number(o._value);
+
+        if (field === 'readings_soilMoisture') reading.soilMoisture = +val.toFixed(1);
+        if (field === 'readings_soilTemp') reading.soilTemp = +val.toFixed(1);
+        if (field === 'readings_airTemp') reading.airTemp = +val.toFixed(1);
+        if (field === 'readings_airHumidity') reading.airHumidity = +val.toFixed(1);
+        if (field === 'readings_co2Ppm') reading.co2Ppm = Math.round(val);
+        if (field === 'system_wifiRssi') reading.wifiRssi = Math.round(val);
+        if (o.device_id) reading.deviceId = o.device_id;
+      },
+      error(error) {
+        console.warn('[InfluxDB] Latest query failed, falling back to mock:', error.message);
+        resolve(fallbackMock);
+      },
+      complete() {
+        if (!latestIsoTime || reading.soilMoisture === undefined) {
+          resolve(fallbackMock);
+        } else {
+          reading.timestamp = latestIsoTime;
+          // Check if data is older than 5 minutes
+          const diffMs = Date.now() - new Date(latestIsoTime).getTime();
+          reading.isStale = diffMs > 5 * 60 * 1000;
+          resolve(reading as LatestTelemetryRow);
+        }
+      },
+    });
+  });
+}
+

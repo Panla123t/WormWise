@@ -32,3 +32,16 @@ export interface DownsampledTelemetryRow {
   co2Ppm?: number;
   wifiRssi?: number;
 }
+
+export interface LatestTelemetryRow {
+  timestamp: string;
+  soilMoisture: number;
+  soilTemp: number;
+  airTemp: number;
+  airHumidity: number;
+  co2Ppm?: number;
+  wifiRssi?: number;
+  deviceId: string;
+  source: 'influxdb' | 'mock';
+  isStale?: boolean;
+}
