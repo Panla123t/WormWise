@@ -35,8 +35,8 @@ services:
       - INFLUXDB_TOKEN=wormwise-dev-token-9999-secure-local
       - INFLUXDB_ORG=wormwise
       - INFLUXDB_BUCKET=wormwise-telemetry
-      - MQTT_BROKER_URL=${MQTT_BROKER_URL:-ssl://broker.hivemq.com:8883}
-      - MQTT_USERNAME=${MQTT_USERNAME:-wormwise_backend_dev}
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL:-ssl://q12d2d2f.ala.asia-southeast1.emqxsl.com:8883}
+      - MQTT_USERNAME=${MQTT_USERNAME:-wormwise_esp32_dev}
       - MQTT_PASSWORD=${MQTT_PASSWORD:-}
 
 volumes:
